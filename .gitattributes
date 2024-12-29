@@ -1,3 +1,9 @@
-*.js text eol=lf
+# Конвертация окончаний строк
+* text=auto
+
+# Исключение из нормализации
 *.css text eol=lf
-*.html text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.cshtml text eol=lf
+*.sql text eol=lf
