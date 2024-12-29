@@ -1,0 +1,87 @@
+.edit-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: rgba(255, 255, 255, 0.6); /* Белый фон с 0.6 прозрачностью */
+    background-size: cover;
+    background-position: center;
+    padding: 20px;
+}
+
+.edit-form {
+    background: rgba(255, 255, 255, 0.6); /* Белый фон с 0.8 прозрачностью */
+    padding: 20px;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 800px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    box-sizing: border-box; /* Учитываем padding внутри ширины */
+}
+
+    .edit-form h1 {
+        text-align: center;
+        margin-bottom: 20px;
+        color: black; /* Черный цвет для заголовка */
+    }
+
+    .edit-form label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: black; /* Черный цвет для меток */
+    }
+
+    .edit-form input,
+    .edit-form textarea {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0; /* Уменьшены отступы между полями */
+        border: 1px solid #ccc;
+        background-color: rgba(255, 255, 255, 0.6); /* Белый фон с прозрачностью для ввода */
+        border-radius: 5px;
+        color: black; /* Черный цвет для текста ввода */
+        box-sizing: border-box; /* Учитываем padding внутри ширины */
+    }
+
+        .edit-form input:focus,
+        .edit-form textarea:focus {
+            outline: none;
+            border-color: #45a049; /* Добавляем фокусное кольцо */
+        }
+
+.back {
+    color: black; /* Черный цвет текста */
+    font-size: 24px;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+    .back:hover {
+        color: snow;
+        background-color: rgba(0, 0, 0, 0.6);
+        border-radius: 5px;
+    }
+
+.submit-btn {
+    width: 100%;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.8); /* Белый фон с прозрачностью */
+    color: black; /* Черный текст */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+    .submit-btn:hover {
+        background-color: rgba(0, 0, 0, 0.6);
+        color: snow;
+    }
+
+.error-message {
+    color: red;
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+    text-align: center;
+}

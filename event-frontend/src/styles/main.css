@@ -1,0 +1,99 @@
+/* Контейнер для формы логина */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-image: url('../images/background.jpg'); /* Исправленный относительный путь */
+    background-size: cover;
+    background-position: center;
+}
+
+/* Другие стили для формы логина */
+.login-form {
+    background-color: rgba(255, 255, 255, 0.8); /* Полупрозрачный белый фон */
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+}
+
+    /* Заголовок формы */
+    .login-form h2 {
+        text-align: center;
+        margin-bottom: 20px;
+        font-family: 'Caveat', cursive;
+        font-size: 24px;
+        color: #333;
+    }
+
+/* Группы для полей ввода */
+.form-group {
+    margin-bottom: 15px;
+}
+
+    /* Метки для полей ввода */
+    .form-group label {
+        display: block;
+        font-weight: bold;
+        font-family: 'Caveat', cursive;
+        font-size: 16px;
+        color: #333;
+    }
+
+    /* Поля ввода */
+    .form-group input {
+        width: 100%;
+        padding: 10px;
+        margin-top: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 16px;
+        font-family: 'Caveat', cursive;
+        box-sizing: border-box;
+    }
+
+/* Кнопка логина */
+.login-btn {
+    width: 100%;
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    font-family: 'Caveat', cursive;
+    margin-top: 10px;
+}
+
+    .login-btn:hover {
+        background-color: #0056b3;
+    }
+
+/* Сообщения об ошибках */
+.error-message {
+    color: red;
+    font-size: 14px;
+    text-align: center;
+    font-family: 'Caveat', cursive;
+    margin-top: 10px;
+}
+
+/* Ссылка для регистрации */
+.register-link {
+    text-align: center;
+    margin-top: 15px;
+}
+
+    .register-link a {
+        color: #007bff;
+        text-decoration: none;
+        font-family: 'Caveat', cursive;
+        font-size: 16px;
+    }
+
+        .register-link a:hover {
+            text-decoration: underline;
+        }
