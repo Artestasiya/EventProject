@@ -145,11 +145,10 @@ app.get('/api/events', async (req, res) => {
     }
 });
 
-
 app.post('/api/register', async (req, res) => {
-    const { firstName, lastName, email, password } = req.body;
+    const { firstName, lastName, email, password, dateOfBirth } = req.body;
 
-    if (!firstName || !lastName || !email || !password) {
+    if (!firstName || !lastName || !email || !password || !dateOfBirth) {
         return res.status(400).json({ message: 'All fields are required.' });
     }
 
@@ -172,14 +171,14 @@ app.post('/api/register', async (req, res) => {
             .input('email', sql.NVarChar, email)
             .input('password', sql.NVarChar, hashedPassword)
             .input('role', sql.Bit, false)
-            .query('INSERT INTO Loggin (email, password, role,data_birth) VALUES (@email, @password, @role)');
+            .query('INSERT INTO Loggin (email, password, role) VALUES (@email, @password, @role)');
 
         await pool
             .request()
             .input('name', sql.NVarChar, firstName)
             .input('surname', sql.NVarChar, lastName)
             .input('email', sql.NVarChar, email)
-            .input('data_birth', sql.Date,data_birth)
+            .input('data_birth', sql.Date, dateOfBirth)
             .query('INSERT INTO Member (name, surname, Email, data_birth) VALUES (@name, @surname, @email, @data_birth)');
 
         res.status(201).json({ message: 'Registration successful.' });
@@ -325,10 +324,10 @@ app.get('/api/events/:eventId', async (req, res) => {
 
         const eventResult = await pool
             .request()
-            .input('eventId', sql.Int, parsedEventId) 
+            .input('eventId', sql.Int, parsedEventId)
             .query(`
                 SELECT 
-                    e.id_event, e.name, e.description, e.date, e.image,e.max_amount,
+                    e.id_event, e.name, e.description, e.date, e.image, e.max_amount,
                     p.name AS place_name,
                     c.name AS category_name
                 FROM Events e
@@ -345,15 +344,20 @@ app.get('/api/events/:eventId', async (req, res) => {
 
         const participantsResult = await pool
             .request()
-            .input('eventId', sql.Int, parsedEventId)  
+            .input('eventId', sql.Int, parsedEventId)
             .query(`
-                SELECT m.name, m.surname, m.email
+                SELECT 
+                    m.name, m.surname, m.email, me.reg_date
                 FROM Member_event me
                 INNER JOIN Member m ON me.id_member = m.id_member
                 WHERE me.id_event = @eventId
             `);
 
-        event.participants = participantsResult.recordset; 
+        // Add participants with their registration dates
+        event.participants = participantsResult.recordset.map(participant => ({
+            ...participant,
+            reg_date: participant.reg_date ? new Date(participant.reg_date).toISOString() : null
+        }));
 
         res.json(event);
     } catch (err) {
@@ -362,16 +366,28 @@ app.get('/api/events/:eventId', async (req, res) => {
     }
 });
 
-app.post('/api/events/:eventId/register', async (req, res) => {
-    const { userId } = req.body;
-    const { eventId } = req.params;
 
-    if (!userId || !eventId) {
-        return res.status(400).json({ message: 'User ID and Event ID are required.' });
+app.post('/api/events/:eventId/register', authenticateToken, async (req, res) => {
+    const { eventId } = req.params;
+    const { email } = req.user;
+
+    if (!eventId) {
+        return res.status(400).json({ message: 'Event ID is required.' });
     }
 
     try {
         const pool = await connectToDb();
+
+        const memberResult = await pool
+            .request()
+            .input('email', sql.NVarChar, email)
+            .query('SELECT id_member FROM Member WHERE email = @email');
+
+        if (memberResult.recordset.length === 0) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        const userId = memberResult.recordset[0].id_member;
 
         const eventResult = await pool
             .request()
@@ -421,6 +437,7 @@ app.post('/api/events/:eventId/register', async (req, res) => {
         res.status(500).json({ message: 'Server error.' });
     }
 });
+
 
 app.put('/api/events/:eventId/update', async (req, res) => {
     const { eventId } = req.params;

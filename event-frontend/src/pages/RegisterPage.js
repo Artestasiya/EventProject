@@ -9,10 +9,11 @@ const RegisterPage = () => {
         email: '',
         password: '',
         confirmPassword: '',
+        dateOfBirth: '',
     });
 
     const [errors, setErrors] = useState({});
-    const [serverError, setServerError] = useState(''); // Для отображения ошибок от сервера
+    const [serverError, setServerError] = useState('');
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -29,6 +30,7 @@ const RegisterPage = () => {
             newErrors.password = 'Password must be at least 6 characters';
         if (formData.password !== formData.confirmPassword)
             newErrors.confirmPassword = 'Passwords do not match';
+        if (!formData.dateOfBirth) newErrors.dateOfBirth = 'Date of Birth is required';
         return newErrors;
     };
 
@@ -48,25 +50,20 @@ const RegisterPage = () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    firstName: formData.firstName,
-                    lastName: formData.lastName,
-                    email: formData.email,
-                    password: formData.password,
+                    ...formData,
+                    dateOfBirth: new Date(formData.dateOfBirth).toISOString().split('T')[0],
                 }),
             });
 
             const data = await response.json();
 
             if (!response.ok) {
-                // Обработка ошибок с сервера
                 setServerError(data.message || 'Server error. Please try again later.');
                 return;
             }
 
             console.log('Registration successful:', data);
-
-            // Переход на страницу EventPage после успешной регистрации
-            navigate('/event');
+            navigate('/');
         } catch (error) {
             console.error('Error during registration:', error);
             setServerError('Server error. Please try again later.');
@@ -86,7 +83,7 @@ const RegisterPage = () => {
                         value={formData.firstName}
                         onChange={handleChange}
                     />
-                    {errors.firstName && <span>{errors.firstName}</span>}
+                    {errors.firstName && <span style={{ color: 'red' }}>{errors.firstName}</span>}
                 </div>
                 <div>
                     <label>Surname:</label>
@@ -96,7 +93,7 @@ const RegisterPage = () => {
                         value={formData.lastName}
                         onChange={handleChange}
                     />
-                    {errors.lastName && <span>{errors.lastName}</span>}
+                    {errors.lastName && <span style={{ color: 'red' }}>{errors.lastName}</span>}
                 </div>
                 <div>
                     <label>Email:</label>
@@ -106,7 +103,7 @@ const RegisterPage = () => {
                         value={formData.email}
                         onChange={handleChange}
                     />
-                    {errors.email && <span>{errors.email}</span>}
+                    {errors.email && <span style={{ color: 'red' }}>{errors.email}</span>}
                 </div>
                 <div>
                     <label>Password:</label>
@@ -116,7 +113,7 @@ const RegisterPage = () => {
                         value={formData.password}
                         onChange={handleChange}
                     />
-                    {errors.password && <span>{errors.password}</span>}
+                    {errors.password && <span style={{ color: 'red' }}>{errors.password}</span>}
                 </div>
                 <div>
                     <label>Confirm password:</label>
@@ -126,7 +123,17 @@ const RegisterPage = () => {
                         value={formData.confirmPassword}
                         onChange={handleChange}
                     />
-                    {errors.confirmPassword && <span>{errors.confirmPassword}</span>}
+                    {errors.confirmPassword && <span style={{ color: 'red' }}>{errors.confirmPassword}</span>}
+                </div>
+                <div>
+                    <label>Date of Birth:</label>
+                    <input
+                        type="date"
+                        name="dateOfBirth"
+                        value={formData.dateOfBirth}
+                        onChange={handleChange}
+                    />
+                    {errors.dateOfBirth && <span style={{ color: 'red' }}>{errors.dateOfBirth}</span>}
                 </div>
                 <button type="submit">Register</button>
                 <button type="button" onClick={() => navigate('/')}>

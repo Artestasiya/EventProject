@@ -81,15 +81,22 @@ const ProfilePage = () => {
                 ) : user ? (
                     <>
                         <h2>{user.name} {user.surname}</h2>
-                            <p>Email: {user.email}</p>
-                            <p>Дата рождения: {user.data_birth ? new Date(user.data_birth).toISOString().split('T')[0] : 'Не указана'}</p>
+                        <p>Email: {user.email}</p>
+                        <p>Дата рождения: {user.data_birth ? new Date(user.data_birth).toISOString().split('T')[0] : 'Не указана'}</p>
 
                         <h3>Registered Events:</h3>
                         {events.length > 0 ? (
                             <ul>
                                 {events.map(event => (
                                     <li key={event.id_event}>
-                                        {event.event_name} - {event.event_date}
+                                        {event.event_name} -
+                                        {new Date(event.event_date).toLocaleDateString('ru-RU', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                        })}
+                                        <br />
+                                       
                                         <button
                                             onClick={() => handleDeleteEvent(event.id_event)}
                                             className="delete-btn">

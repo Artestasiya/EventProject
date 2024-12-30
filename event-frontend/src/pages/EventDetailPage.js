@@ -8,7 +8,6 @@ const EventDetailPage = () => {
     const [eventData, setEventData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [serverError, setServerError] = useState('');
-    const [userId, setUserId] = useState(1);  
 
     useEffect(() => {
         const fetchEvent = async () => {
@@ -16,9 +15,6 @@ const EventDetailPage = () => {
             try {
                 const response = await fetch(`http://localhost:5000/api/events/${eventId}`);
                 const data = await response.json();
-
-                console.log("Fetched event data:", data);  
-
                 if (response.ok) {
                     setEventData({
                         ...data,
@@ -35,17 +31,19 @@ const EventDetailPage = () => {
             }
         };
 
-        fetchEvent();
+        if (eventId) {
+            fetchEvent();
+        } else {
+            setServerError('Event not found.');
+            setIsLoading(false);
+        }
     }, [eventId]);
 
     const handleRegisterClick = async () => {
-        if (!userId) {
-            alert('Please log in first!');
-            return;
-        }
+        const token = localStorage.getItem('authToken');
 
-        if (eventData?.max_amount && eventData.participants.length >= eventData.max_amount) {
-            alert('Sorry, the event is full!');
+        if (!token) {
+            alert('Please log in first!');
             return;
         }
 
@@ -54,19 +52,13 @@ const EventDetailPage = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
                 },
-                body: JSON.stringify({ userId }),
             });
 
             const data = await response.json();
             if (response.ok) {
                 alert(data.message);
-                setEventData((prevEventData) => ({
-                    ...prevEventData,
-                    participants: [
-                        ...(prevEventData.participants || []),
-                        { id: userId, name: 'Your Name' },                     ],
-                }));
             } else {
                 alert(data.message || 'Registration failed');
             }
@@ -81,7 +73,7 @@ const EventDetailPage = () => {
     }
 
     if (!eventData) {
-        return <p>Event not found</p>;
+        return <p>{serverError || 'Event not found'}</p>;
     }
 
     return (
@@ -108,6 +100,16 @@ const EventDetailPage = () => {
                                 eventData.participants.map((participant, index) => (
                                     <li key={index}>
                                         {participant.name} {participant.surname}
+                                        {/* Displaying registration date and time */}
+                                        - Registered on: {new Date(participant.reg_date).toLocaleString('ru-RU', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            second: '2-digit',
+                                            hour12: true,
+                                        })}
                                     </li>
                                 ))
                             ) : (
@@ -119,7 +121,7 @@ const EventDetailPage = () => {
                             onClick={handleRegisterClick}
                             disabled={eventData.max_amount && eventData.participants.length >= eventData.max_amount}
                         >
-                            {eventData.max_amount && eventData.participants.length > eventData.max_amount
+                            {eventData.max_amount && eventData.participants.length >= eventData.max_amount
                                 ? 'Event Full'
                                 : 'Register for Event'}
                         </button>

@@ -10,9 +10,8 @@ const AdminPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [serverError, setServerError] = useState('');
     const [searchText, setSearchText] = useState('');
-
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
+    const [places, setPlaces] = useState([]);
+    const [categories, setCategories] = useState([]);
 
     const [formData, setFormData] = useState({
         id_category: '',
@@ -20,6 +19,39 @@ const AdminPage = () => {
         date: '',
     });
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+
+    // Fetch places and categories
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [placesResponse, categoriesResponse] = await Promise.all([
+                    fetch('http://localhost:5000/api/places'),
+                    fetch('http://localhost:5000/api/categories'),
+                ]);
+
+                if (!placesResponse.ok || !categoriesResponse.ok) {
+                    throw new Error('Failed to fetch places or categories.');
+                }
+
+                const [placesData, categoriesData] = await Promise.all([
+                    placesResponse.json(),
+                    categoriesResponse.json(),
+                ]);
+
+                setPlaces(placesData);
+                setCategories(categoriesData);
+            } catch (err) {
+                console.error('Error fetching places or categories:', err);
+                setServerError('Error fetching places or categories.');
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    // Fetch events based on the filter
     useEffect(() => {
         const fetchEvents = async () => {
             const { id_category, id_place, date } = formData;
@@ -33,17 +65,17 @@ const AdminPage = () => {
 
             try {
                 const response = await fetch(`http://localhost:5000/api/events?${queryParams.toString()}`);
-                const data = await response.json();
                 if (response.ok) {
-                    setEventData(data.events);
-                    setFilteredEvents(data.events);
-                    setTotalPages(data.totalPages);
+                    const eventsData = await response.json();
+                    setEventData(eventsData.events);
+                    setFilteredEvents(eventsData.events);
+                    setTotalPages(eventsData.totalPages);
                 } else {
-                    setServerError(data.message || 'Error fetching events');
+                    setServerError('Failed to fetch events.');
                 }
-            } catch (error) {
-                console.error('Error fetching events:', error);
-                setServerError('Server error. Please try again later.');
+            } catch (err) {
+                console.error('Error fetching events:', err);
+                setServerError('Error fetching events. Please try again later.');
             } finally {
                 setIsLoading(false);
             }
@@ -111,6 +143,11 @@ const AdminPage = () => {
                         onChange={handleFilterChange}
                     >
                         <option value="">Select a category</option>
+                        {categories.map((category) => (
+                            <option key={category.id_category} value={category.id_category}>
+                                {category.name}
+                            </option>
+                        ))}
                     </select>
 
                     <select
@@ -120,6 +157,11 @@ const AdminPage = () => {
                         onChange={handleFilterChange}
                     >
                         <option value="">Select a place</option>
+                        {places.map((place) => (
+                            <option key={place.id_place} value={place.id_place}>
+                                {place.name}
+                            </option>
+                        ))}
                     </select>
 
                     <input
@@ -151,15 +193,28 @@ const AdminPage = () => {
                             </div>
                         ))
                     ) : (
-                        <p>There are no events now</p>
+                        <p>No events found.</p>
                     )}
                 </div>
 
                 <div className="pagination">
-                    <button onClick={goToPreviousPage} disabled={currentPage === 1}>←</button>
+                    <button
+                        className="pagination-button"
+                        onClick={goToPreviousPage}
+                        disabled={currentPage === 1}
+                    >
+                        ←
+                    </button>
                     <span>{`Page ${currentPage} of ${totalPages}`}</span>
-                    <button onClick={goToNextPage} disabled={currentPage === totalPages}>→</button>
+                    <button
+                        className="pagination-button"
+                        onClick={goToNextPage}
+                        disabled={currentPage === totalPages}
+                    >
+                        →
+                    </button>
                 </div>
+
             </div>
         </div>
     );
