@@ -51,6 +51,101 @@ const connectToDb = async () => {
     }
 };
 
+app.get('/api/events', async (req, res) => {
+    const { place, category, date, page = 1, limit = 10 } = req.query;
+
+    if (page < 1) {
+        console.log('Invalid page:', page);
+        return res.status(400).json({ message: 'Page must be greater than 0.' });
+    }
+
+    if (limit < 1) {
+        console.log('Invalid limit:', limit);
+        return res.status(400).json({ message: 'Limit must be greater than 0.' });
+    }
+
+    let query = `
+        SELECT e.id_event, e.name, e.description, e.date, e.image, e.max_amount,
+            p.name AS place_name, c.name AS category_name,
+            (SELECT COUNT(*) FROM Member_event me WHERE me.id_event = e.id_event) AS participants_count
+        FROM Events e
+        INNER JOIN Place p ON e.id_place = p.id_place
+        INNER JOIN Category c ON e.id_category = c.id_category
+        WHERE 1=1
+    `;
+    const queryParams = [];
+
+    if (place) {
+        query += ` AND p.id_place = @place`;
+        queryParams.push({ name: 'place', type: sql.Int, value: parseInt(place) });
+    }
+    if (category) {
+        query += ` AND c.id_category = @category`;
+        queryParams.push({ name: 'category', type: sql.Int, value: parseInt(category) });
+    }
+    if (date) {
+        const formattedDate = new Date(date);
+        if (isNaN(formattedDate.getTime())) {
+            return res.status(400).json({ message: 'Invalid date format.' });
+        }
+        query += ` AND CAST(e.date AS DATE) = @date`;
+        queryParams.push({ name: 'date', type: sql.Date, value: formattedDate });
+    }
+
+    const offset = (page - 1) * limit;
+    console.log('Pagination info - page:', page, 'limit:', limit, 'offset:', offset);
+    query += ` ORDER BY e.date OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY`;
+
+    try {
+        const pool = await connectToDb();
+        const request = pool.request();
+
+        queryParams.forEach(param => {
+            request.input(param.name, param.type, param.value);
+        });
+        request.input('offset', sql.Int, offset);
+        request.input('limit', sql.Int, limit);
+
+        const eventsResult = await request.query(query);
+
+        if (eventsResult.recordset.length === 0) {
+            console.log('No events found with the given criteria.');
+            return res.status(404).json({ message: 'No events found.' });
+        }
+
+        const totalResult = await pool
+            .request()
+            .query('SELECT COUNT(*) AS total FROM Events');
+
+        const total = totalResult.recordset[0].total;
+
+        res.json({
+            events: eventsResult.recordset.map(e => ({
+                id_event: e.id_event,
+                name: e.name,
+                description: e.description,
+                date: e.date,
+                image: e.image,
+                max_amount: e.max_amount,
+                place_name: e.place_name,
+                category_name: e.category_name,
+                participants_count: e.participants_count || 0,
+            })),
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages: Math.ceil(total / limit),
+                totalCount: total,
+                perPage: parseInt(limit),
+            },
+        });
+
+    } catch (err) {
+        console.error('Error fetching events:', err);
+        res.status(500).json({ message: 'Server error.' });
+    }
+});
+
+
 app.post('/api/register', async (req, res) => {
     const { firstName, lastName, email, password } = req.body;
 
@@ -104,7 +199,7 @@ app.post('/api/login', async (req, res) => {
     try {
         const pool = await connectToDb();
 
-        console.log('Checking user with email:', email); // Логируем запрос на проверку пользователя
+        console.log('Checking user with email:', email); 
 
         const userResult = await pool
             .request()
@@ -114,20 +209,20 @@ app.post('/api/login', async (req, res) => {
         const user = userResult.recordset[0];
 
         if (!user) {
-            console.log('User not found:', email); // Логируем, если пользователь не найден
+            console.log('User not found:', email); 
             return res.status(400).json({ message: 'Invalid email or password.' });
         }
 
-        console.log('User found:', user.email); // Логируем, если пользователь найден
+        console.log('User found:', user.email); 
 
         const isPasswordCorrect = await bcrypt.compare(password, user.password);
 
         if (!isPasswordCorrect) {
-            console.log('Incorrect password for user:', email); // Логируем неверный пароль
+            console.log('Incorrect password for user:', email); 
             return res.status(400).json({ message: 'Invalid email or password.' });
         }
 
-        console.log('Password correct for user:', email); // Логируем успешное сопоставление пароля
+        console.log('Password correct for user:', email); 
 
         const token = jwt.sign(
             { userId: user.id_loggin, email: user.email, role: user.role },
@@ -135,99 +230,19 @@ app.post('/api/login', async (req, res) => {
             { expiresIn: '3h' }
         );
 
-        console.log('Token generated for user:', email); // Логируем создание токена
+        console.log('Token generated for user:', email);
 
         res.json({
             message: 'Login successful.',
             token,
             role: user.role,
-            email: user.email // Добавляем email в ответ 
+            email: user.email  
         });
     } catch (err) {
         console.error('Login error:', err.message);
         res.status(500).json({ message: 'Server error.' });
     }
 });
-
-app.get('/api/events', async (req, res) => {
-    const { place, category, date, page = 1, limit = 10 } = req.query;
-
-    let query = `
-        SELECT e.id_event, e.name, e.description, e.date, e.image,
-            p.name AS place_name, c.name AS category_name
-        FROM Events e
-        INNER JOIN Place p ON e.id_place = p.id_place
-        INNER JOIN Category c ON e.id_category = c.id_category
-        WHERE 1=1
-    `;
-
-    const queryParams = [];
-
-    // Filter by place
-    if (place) {
-        query += ` AND p.id_place = @place`;
-        queryParams.push({ name: 'place', type: sql.Int, value: parseInt(place) });
-    }
-
-    // Filter by category
-    if (category) {
-        query += ` AND c.id_category = @category`;
-        queryParams.push({ name: 'category', type: sql.Int, value: parseInt(category) });
-    }
-
-    // Filter by date
-    if (date) {
-        const formattedDate = new Date(date);
-        if (isNaN(formattedDate.getTime())) {
-            return res.status(400).json({ message: 'Invalid date format.' });
-        }
-        query += ` AND CAST(e.date AS DATE) = @date`;
-        queryParams.push({ name: 'date', type: sql.Date, value: formattedDate });
-    }
-
-    // Pagination logic
-    const offset = (page - 1) * limit;
-    query += ` ORDER BY e.date OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY`;
-
-    try {
-        const pool = await connectToDb();
-        const request = pool.request();
-
-        // Add parameters to the request
-        queryParams.forEach(param => {
-            request.input(param.name, param.type, param.value);
-        });
-        request.input('offset', sql.Int, offset);
-        request.input('limit', sql.Int, limit);
-
-        const eventsResult = await request.query(query);
-
-        if (eventsResult.recordset.length === 0) {
-            return res.status(404).json({ message: 'No events found.' });
-        }
-
-        // Fetch the total number of events for pagination metadata
-        const totalResult = await pool
-            .request()
-            .query('SELECT COUNT(*) AS total FROM Events');
-
-        const total = totalResult.recordset[0].total;
-
-        res.json({
-            events: eventsResult.recordset,
-            pagination: {
-                currentPage: parseInt(page),
-                totalPages: Math.ceil(total / limit),
-                totalCount: total,
-                perPage: parseInt(limit)
-            }
-        });
-    } catch (err) {
-        console.error('Error fetching events:', err);
-        res.status(500).json({ message: 'Server error.' });
-    }
-});
-
 
 app.post('/api/add_events', async (req, res) => {
     const { name, description, date, id_place, id_category, max_amount, image } = req.body;
@@ -299,10 +314,8 @@ app.get('/api/categories', async (req, res) => {
 app.get('/api/events/:eventId', async (req, res) => {
     let { eventId } = req.params;
 
-    // Преобразуем eventId в целое число, если оно не является числом
     const parsedEventId = parseInt(eventId, 10);
 
-    // Проверяем, является ли parsedEventId допустимым числом
     if (isNaN(parsedEventId)) {
         return res.status(400).json({ message: 'Invalid eventId parameter.' });
     }
@@ -310,13 +323,12 @@ app.get('/api/events/:eventId', async (req, res) => {
     try {
         const pool = await connectToDb();
 
-        // Запрос на получение информации о мероприятии и зарегистрированных пользователях
         const eventResult = await pool
             .request()
-            .input('eventId', sql.Int, parsedEventId)  // Используем parsedEventId
+            .input('eventId', sql.Int, parsedEventId) 
             .query(`
                 SELECT 
-                    e.id_event, e.name, e.description, e.date, e.image,
+                    e.id_event, e.name, e.description, e.date, e.image,e.max_amount,
                     p.name AS place_name,
                     c.name AS category_name
                 FROM Events e
@@ -325,17 +337,15 @@ app.get('/api/events/:eventId', async (req, res) => {
                 WHERE e.id_event = @eventId
             `);
 
-        // Если мероприятие не найдено
         if (eventResult.recordset.length === 0) {
             return res.status(404).json({ message: 'Event not found.' });
         }
 
         const event = eventResult.recordset[0];
 
-        // Получение списка участников мероприятия из таблицы Member_event
         const participantsResult = await pool
             .request()
-            .input('eventId', sql.Int, parsedEventId)  // Используем parsedEventId
+            .input('eventId', sql.Int, parsedEventId)  
             .query(`
                 SELECT m.name, m.surname, m.email
                 FROM Member_event me
@@ -343,7 +353,7 @@ app.get('/api/events/:eventId', async (req, res) => {
                 WHERE me.id_event = @eventId
             `);
 
-        event.participants = participantsResult.recordset; // Список участников
+        event.participants = participantsResult.recordset; 
 
         res.json(event);
     } catch (err) {
@@ -363,7 +373,6 @@ app.post('/api/events/:eventId/register', async (req, res) => {
     try {
         const pool = await connectToDb();
 
-        // Проверка на наличие события
         const eventResult = await pool
             .request()
             .input('id_event', sql.Int, eventId)
@@ -375,7 +384,6 @@ app.post('/api/events/:eventId/register', async (req, res) => {
 
         const maxAmount = eventResult.recordset[0].max_amount;
 
-        // Проверка текущего количества участников
         const participantCountResult = await pool
             .request()
             .input('id_event', sql.Int, eventId)
@@ -387,7 +395,6 @@ app.post('/api/events/:eventId/register', async (req, res) => {
             return res.status(400).json({ message: 'Event is fully booked.' });
         }
 
-        // Проверка, не зарегистрирован ли пользователь уже на событие
         const existingRegistration = await pool
             .request()
             .input('id_event', sql.Int, eventId)
@@ -398,7 +405,6 @@ app.post('/api/events/:eventId/register', async (req, res) => {
             return res.status(400).json({ message: 'You are already registered for this event.' });
         }
 
-        // Регистрация пользователя
         await pool
             .request()
             .input('id_event', sql.Int, eventId)
@@ -420,7 +426,6 @@ app.put('/api/events/:eventId/update', async (req, res) => {
     const { eventId } = req.params;
     const { name, description, date, id_place, id_category, max_amount, image } = req.body;
 
-    // Валидация данных
     if (!name || !description || !date || !id_place || !id_category || !max_amount) {
         return res.status(400).json({ message: 'All fields are required.' });
     }
@@ -464,10 +469,8 @@ app.put('/api/events/:eventId/update', async (req, res) => {
 app.get('/api/events/:eventId/edit', async (req, res) => {
     let { eventId } = req.params;
 
-    // Преобразуем eventId в целое число, если оно не является числом
     const parsedEventId = parseInt(eventId, 10);
 
-    // Проверяем, является ли parsedEventId допустимым числом
     if (isNaN(parsedEventId)) {
         return res.status(400).json({ message: 'Invalid eventId parameter.' });
     }
@@ -475,10 +478,9 @@ app.get('/api/events/:eventId/edit', async (req, res) => {
     try {
         const pool = await connectToDb();
 
-        // Запрос на получение информации о мероприятии, включая max_amount
         const eventResult = await pool
             .request()
-            .input('eventId', sql.Int, parsedEventId) // Используем parsedEventId
+            .input('eventId', sql.Int, parsedEventId) 
             .query(`
                 SELECT 
                     e.id_event, e.name, e.description, e.date, e.image,
@@ -492,17 +494,15 @@ app.get('/api/events/:eventId/edit', async (req, res) => {
                 WHERE e.id_event = @eventId
             `);
 
-        // Если мероприятие не найдено
         if (eventResult.recordset.length === 0) {
             return res.status(404).json({ message: 'Event not found.' });
         }
 
         const event = eventResult.recordset[0];
 
-        // Получение списка участников мероприятия из таблицы Member_event
         const participantsResult = await pool
             .request()
-            .input('eventId', sql.Int, parsedEventId) // Используем parsedEventId
+            .input('eventId', sql.Int, parsedEventId) 
             .query(`
                 SELECT m.name, m.surname, m.email
                 FROM Member_event me
@@ -510,7 +510,7 @@ app.get('/api/events/:eventId/edit', async (req, res) => {
                 WHERE me.id_event = @eventId
             `);
 
-        event.participants = participantsResult.recordset; // Список участников
+        event.participants = participantsResult.recordset; 
 
         res.json(event);
     } catch (err) {
@@ -524,7 +524,6 @@ app.get('/api/profile', authenticateToken, async (req, res) => {
     try {
         const pool = await connectToDb();
 
-        // Запрос для получения данных пользователя и его событий
         const userResult = await pool
             .request()
             .input('email', sql.NVarChar, email)

@@ -17,11 +17,9 @@ const EventsPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [serverError, setServerError] = useState('');
 
-    // Состояние для пагинации
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    // Загружаем категории и места
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -50,7 +48,6 @@ const EventsPage = () => {
         fetchData();
     }, []);
 
-    // Загружаем события при изменении фильтров или текущей страницы
     useEffect(() => {
         const fetchEvents = async () => {
             const { id_category, id_place, date } = formData;
@@ -59,8 +56,8 @@ const EventsPage = () => {
             if (id_category) queryParams.append('category', id_category);
             if (id_place) queryParams.append('place', id_place);
             if (date) queryParams.append('date', date);
-            queryParams.append('page', currentPage);  // Добавляем текущую страницу
-            queryParams.append('limit', 10);  // Например, показываем по 10 событий на странице
+            queryParams.append('page', currentPage);
+            queryParams.append('limit', 10);
 
             console.log('Request Params:', queryParams.toString());
 
@@ -69,9 +66,9 @@ const EventsPage = () => {
                 if (response.ok) {
                     const eventsData = await response.json();
                     console.log('Received Events Data:', eventsData);
-                    setEventData(eventsData.events);  // Принимаем события
-                    setFilteredEvents(eventsData.events);  // Отображаем только эти события
-                    setTotalPages(eventsData.totalPages);  // Устанавливаем количество страниц
+                    setEventData(eventsData.events);
+                    setFilteredEvents(eventsData.events);
+                    setTotalPages(eventsData.totalPages);
                 } else {
                     setServerError('Failed to fetch events.');
                 }
@@ -84,16 +81,15 @@ const EventsPage = () => {
         };
 
         fetchEvents();
-    }, [formData, currentPage]);  // Добавили currentPage в зависимости
+    }, [formData, currentPage]);
 
-    // Обработчик изменения фильтров
     const handleFilterChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({
             ...prev,
             [name]: value,
         }));
-        setCurrentPage(1);  // Сброс текущей страницы на 1 при изменении фильтров
+        setCurrentPage(1);
     };
 
     const handleEventClick = (eventId) => {
@@ -108,6 +104,13 @@ const EventsPage = () => {
         if (currentPage < totalPages) setCurrentPage(currentPage + 1);
     };
 
+    const handleSearchChange = (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        setFilteredEvents(
+            eventData.filter((event) => event.name.toLowerCase().includes(searchTerm))
+        );
+    };
+
     return (
         <div className="background" style={{ backgroundImage: `url(${backgroundImage})` }}>
             <div className="container">
@@ -116,13 +119,7 @@ const EventsPage = () => {
                         type="text"
                         placeholder="Search..."
                         className="search-bar"
-                        onChange={(e) =>
-                            setFilteredEvents(
-                                eventData.filter((event) =>
-                                    event.name.toLowerCase().includes(e.target.value.toLowerCase())
-                                )
-                            )
-                        }
+                        onChange={handleSearchChange}
                     />
                     <button className="user-icon" onClick={() => navigate('/profile')}>👤</button>
                 </div>
@@ -190,10 +187,23 @@ const EventsPage = () => {
                 </div>
 
                 <div className="pagination">
-                    <button onClick={goToPreviousPage} disabled={currentPage === 1}>←</button>
+                    <button
+                        className="pagination-button"
+                        onClick={goToPreviousPage}
+                        disabled={currentPage === 1}
+                    >
+                        ←
+                    </button>
                     <span>{`Page ${currentPage} of ${totalPages}`}</span>
-                    <button onClick={goToNextPage} disabled={currentPage === totalPages}>→</button>
+                    <button
+                        className="pagination-button"
+                        onClick={goToNextPage}
+                        disabled={currentPage === totalPages}
+                    >
+                        →
+                    </button>
                 </div>
+
             </div>
         </div>
     );

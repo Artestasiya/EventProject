@@ -6,19 +6,38 @@ import backgroundImage from '../images/background.jpg';
 const AdminPage = () => {
     const navigate = useNavigate();
     const [eventData, setEventData] = useState([]);
-    const [filteredEvents, setFilteredEvents] = useState([]); // Для хранения отфильтрованных событий
+    const [filteredEvents, setFilteredEvents] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [serverError, setServerError] = useState('');
-    const [searchText, setSearchText] = useState(''); // Состояние для текста поиска
+    const [searchText, setSearchText] = useState('');
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+
+    const [formData, setFormData] = useState({
+        id_category: '',
+        id_place: '',
+        date: '',
+    });
 
     useEffect(() => {
         const fetchEvents = async () => {
+            const { id_category, id_place, date } = formData;
+            const queryParams = new URLSearchParams();
+
+            if (id_category) queryParams.append('category', id_category);
+            if (id_place) queryParams.append('place', id_place);
+            if (date) queryParams.append('date', date);
+            queryParams.append('page', currentPage);
+            queryParams.append('limit', 10);
+
             try {
-                const response = await fetch('http://localhost:5000/api/events');
+                const response = await fetch(`http://localhost:5000/api/events?${queryParams.toString()}`);
                 const data = await response.json();
                 if (response.ok) {
-                    setEventData(data);
-                    setFilteredEvents(data); // Изначально отображаем все события
+                    setEventData(data.events);
+                    setFilteredEvents(data.events);
+                    setTotalPages(data.totalPages);
                 } else {
                     setServerError(data.message || 'Error fetching events');
                 }
@@ -31,23 +50,38 @@ const AdminPage = () => {
         };
 
         fetchEvents();
-    }, []);
+    }, [formData, currentPage]);
 
-    // Обработчик изменения текста в поле поиска
+    const handleFilterChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+        setCurrentPage(1);
+    };
+
     const handleSearchChange = (e) => {
         const value = e.target.value;
         setSearchText(value);
 
-        // Фильтрация событий по названию или id_event
         const filtered = eventData.filter(event =>
             event.name.toLowerCase().includes(value.toLowerCase()) ||
             event.id_event.toString().includes(value)
         );
-        setFilteredEvents(filtered); // Обновляем фильтрованные события
+        setFilteredEvents(filtered);
     };
 
     const handleEventClick = (eventId) => {
-        navigate(`/edit-event/${eventId}`); // Переход к редактированию события
+        navigate(`/edit-event/${eventId}`);
+    };
+
+    const goToPreviousPage = () => {
+        if (currentPage > 1) setCurrentPage(currentPage - 1);
+    };
+
+    const goToNextPage = () => {
+        if (currentPage < totalPages) setCurrentPage(currentPage + 1);
     };
 
     return (
@@ -59,7 +93,7 @@ const AdminPage = () => {
                         placeholder="Search by name or ID..."
                         className="search-bar"
                         value={searchText}
-                        onChange={handleSearchChange} // Обработчик ввода текста
+                        onChange={handleSearchChange}
                     />
                     <button className="add_event" onClick={() => navigate('/add-event')}>
                         Add Event
@@ -67,6 +101,34 @@ const AdminPage = () => {
                     <button className="user-icon" onClick={() => navigate('/profile')}>
                         👤
                     </button>
+                </div>
+
+                <div className="filters">
+                    <select
+                        id="id_category"
+                        name="id_category"
+                        value={formData.id_category}
+                        onChange={handleFilterChange}
+                    >
+                        <option value="">Select a category</option>
+                    </select>
+
+                    <select
+                        id="id_place"
+                        name="id_place"
+                        value={formData.id_place}
+                        onChange={handleFilterChange}
+                    >
+                        <option value="">Select a place</option>
+                    </select>
+
+                    <input
+                        type="date"
+                        id="date"
+                        name="date"
+                        value={formData.date}
+                        onChange={handleFilterChange}
+                    />
                 </div>
 
                 {serverError && <p className="error">{serverError}</p>}
@@ -79,7 +141,7 @@ const AdminPage = () => {
                             <div
                                 className="card"
                                 key={event.id_event}
-                                onClick={() => handleEventClick(event.id_event)} // Обработчик клика
+                                onClick={() => handleEventClick(event.id_event)}
                             >
                                 <img src={event.image} alt={event.name} />
                                 <div className="card-info">
@@ -91,6 +153,12 @@ const AdminPage = () => {
                     ) : (
                         <p>There are no events now</p>
                     )}
+                </div>
+
+                <div className="pagination">
+                    <button onClick={goToPreviousPage} disabled={currentPage === 1}>←</button>
+                    <span>{`Page ${currentPage} of ${totalPages}`}</span>
+                    <button onClick={goToNextPage} disabled={currentPage === totalPages}>→</button>
                 </div>
             </div>
         </div>
