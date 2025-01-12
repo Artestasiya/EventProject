@@ -28,7 +28,6 @@ yarn-error.log*
 
 # Конфигурации
 appsettings*.json
-*.env
 
 # Системные файлы
 .DS_Store

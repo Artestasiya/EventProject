@@ -2,6 +2,9 @@
 import { useNavigate } from 'react-router-dom';
 import './EventsPage.css';
 import backgroundImage from '../images/background.jpg';
+import { fetchPlaces, fetchCategories, fetchEvents, searchEvents } from '../services/eventsService'; 
+
+
 
 const EventsPage = () => {
     const navigate = useNavigate();
@@ -16,27 +19,16 @@ const EventsPage = () => {
     const [categories, setCategories] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [serverError, setServerError] = useState('');
-
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [placesResponse, categoriesResponse] = await Promise.all([
-                    fetch('http://localhost:5000/api/places'),
-                    fetch('http://localhost:5000/api/categories'),
-                ]);
-
-                if (!placesResponse.ok || !categoriesResponse.ok) {
-                    throw new Error('Failed to fetch places or categories.');
-                }
-
                 const [placesData, categoriesData] = await Promise.all([
-                    placesResponse.json(),
-                    categoriesResponse.json(),
+                    fetchPlaces(),
+                    fetchCategories(),
                 ]);
-
                 setPlaces(placesData);
                 setCategories(categoriesData);
             } catch (err) {
@@ -49,29 +41,12 @@ const EventsPage = () => {
     }, []);
 
     useEffect(() => {
-        const fetchEvents = async () => {
-            const { id_category, id_place, date } = formData;
-            const queryParams = new URLSearchParams();
-
-            if (id_category) queryParams.append('category', id_category);
-            if (id_place) queryParams.append('place', id_place);
-            if (date) queryParams.append('date', date);
-            queryParams.append('page', currentPage);
-            queryParams.append('limit', 10);
-
-            console.log('Request Params:', queryParams.toString());
-
+        const fetchEventsData = async () => {
             try {
-                const response = await fetch(`http://localhost:5000/api/events?${queryParams.toString()}`);
-                if (response.ok) {
-                    const eventsData = await response.json();
-                    console.log('Received Events Data:', eventsData);
-                    setEventData(eventsData.events);
-                    setFilteredEvents(eventsData.events);
-                    setTotalPages(eventsData.totalPages);
-                } else {
-                    setServerError('Failed to fetch events.');
-                }
+                const eventsData = await fetchEvents(formData, currentPage);
+                setEventData(eventsData.events);
+                setFilteredEvents(eventsData.events);
+                setTotalPages(eventsData.totalPages);
             } catch (err) {
                 console.error('Error fetching events:', err);
                 setServerError('Error fetching events. Please try again later.');
@@ -80,7 +55,7 @@ const EventsPage = () => {
             }
         };
 
-        fetchEvents();
+        fetchEventsData();
     }, [formData, currentPage]);
 
     const handleFilterChange = (e) => {
@@ -89,11 +64,12 @@ const EventsPage = () => {
             ...prev,
             [name]: value,
         }));
-        setCurrentPage(1);
+        setCurrentPage(1); 
     };
 
-    const handleEventClick = (eventId) => {
-        navigate(`/event/${eventId}`);
+    const handleSearchChange = (e) => {
+        const searchTerm = e.target.value;
+        setFilteredEvents(searchEvents(eventData, searchTerm));
     };
 
     const goToPreviousPage = () => {
@@ -104,11 +80,8 @@ const EventsPage = () => {
         if (currentPage < totalPages) setCurrentPage(currentPage + 1);
     };
 
-    const handleSearchChange = (e) => {
-        const searchTerm = e.target.value.toLowerCase();
-        setFilteredEvents(
-            eventData.filter((event) => event.name.toLowerCase().includes(searchTerm))
-        );
+    const handleEventClick = (eventId) => {
+        navigate(`/event/${eventId}`);
     };
 
     return (
@@ -121,7 +94,9 @@ const EventsPage = () => {
                         className="search-bar"
                         onChange={handleSearchChange}
                     />
-                    <button className="user-icon" onClick={() => navigate('/profile')}>👤</button>
+                    <button className="user-icon" onClick={() => navigate('/profile')}>
+                        👤
+                    </button>
                 </div>
 
                 <div className="filters">
@@ -203,7 +178,6 @@ const EventsPage = () => {
                         →
                     </button>
                 </div>
-
             </div>
         </div>
     );

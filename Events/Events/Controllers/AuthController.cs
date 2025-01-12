@@ -1,98 +1,46 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using Microsoft.IdentityModel.Tokens;
-using Events.Core.Models;
-using Events.DataAccess;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity.Data;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity.Data;
+using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
-    private readonly IConfiguration _configuration;
+    private readonly AuthService _authService;
+    private readonly JwtService _jwtService;
 
-    public AuthController(ApplicationDbContext context, IConfiguration configuration)
+    public AuthController(AuthService authService, JwtService jwtService)
     {
-        _context = context;
-        _configuration = configuration;
+        _authService = authService;
+        _jwtService = jwtService;
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest model)
     {
-        var loggin = await _context.Loggin.SingleOrDefaultAsync(l => l.email == model.Email);
-
-        var passwordHasher = new PasswordHasher<Loggin>();
-        if (loggin == null || passwordHasher.VerifyHashedPassword(loggin, loggin.password, model.Password) != PasswordVerificationResult.Success)
+        var user = await _authService.ValidateUser(model.Email, model.Password);
+        if (user == null)
         {
             return Unauthorized("Invalid email or password.");
         }
 
+        var jwtToken = _jwtService.GenerateJwtToken(user.email);
+        var refreshToken = Convert.ToBase64String(Guid.NewGuid().ToByteArray());
 
-        // Generate JWT token
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]);
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(new[]
-            {
-                new Claim(ClaimTypes.Name, loggin.email),
-                // Вы можете добавить больше данных, если требуется
-            }),
-            Expires = DateTime.UtcNow.AddHours(1),
-            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-        };
+        await _authService.SaveRefreshToken(user.email, refreshToken);
 
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        return Ok(new { Token = tokenHandler.WriteToken(token) });
+        return Ok(new { Token = jwtToken, RefreshToken = refreshToken });
     }
 
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh([FromBody] string refreshToken)
     {
-        var storedToken = await _context.RefreshTokens.SingleOrDefaultAsync(r => r.Token == refreshToken);
-
-        if (storedToken == null || storedToken.Expiration < DateTime.UtcNow || storedToken.IsRevoked)
+        var email = await _authService.ValidateRefreshToken(refreshToken);
+        if (email == null)
         {
             return Unauthorized("Invalid or expired refresh token.");
         }
 
-        // Генерация нового токена
-        var email = storedToken.Email;
-        var jwtToken = GenerateJwtToken(email);
-
-        // Обновление Refresh токена
-        storedToken.Token = GenerateRefreshToken();
-        storedToken.Expiration = DateTime.UtcNow.AddDays(7);
-        _context.RefreshTokens.Update(storedToken);
-        await _context.SaveChangesAsync();
-
-        return Ok(new { Token = jwtToken, RefreshToken = storedToken.Token });
+        var newJwtToken = _jwtService.GenerateJwtToken(email);
+        return Ok(new { Token = newJwtToken });
     }
-
-    private string GenerateJwtToken(string email)
-    {
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]);
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, email) }),
-            Expires = DateTime.UtcNow.AddHours(1),
-            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-        };
-
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        return tokenHandler.WriteToken(token);
-    }
-
-    private string GenerateRefreshToken()
-    {
-        return Convert.ToBase64String(Guid.NewGuid().ToByteArray());
-    }
-
 }

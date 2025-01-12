@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using Events.Core.Models;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
 
 namespace Events.Controllers
 {

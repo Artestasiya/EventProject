@@ -2,6 +2,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import './EditPage.css';
 import backgroundImage from '../images/background.jpg';
+import { fetchPlaces, fetchCategories, fetchEventData, updateEvent, deleteEvent } from '../services/apiService';
 
 const EditPage = () => {
     const { eventId } = useParams();
@@ -20,21 +21,11 @@ const EditPage = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
+    // Загрузка данных мест и категорий
     useEffect(() => {
-        const fetchPlacesAndCategories = async () => {
+        const loadInitialData = async () => {
             try {
-                const [placesResponse, categoriesResponse] = await Promise.all([
-                    fetch('http://localhost:5000/api/places'),
-                    fetch('http://localhost:5000/api/categories'),
-                ]);
-
-                if (!placesResponse.ok || !categoriesResponse.ok) {
-                    throw new Error('Failed to fetch places or categories from the server.');
-                }
-
-                const placesData = await placesResponse.json();
-                const categoriesData = await categoriesResponse.json();
-
+                const [placesData, categoriesData] = await Promise.all([fetchPlaces(), fetchCategories()]);
                 setPlaces(placesData);
                 setCategories(categoriesData);
             } catch (err) {
@@ -42,26 +33,18 @@ const EditPage = () => {
                 setError('Failed to load places or categories. Please try again later.');
             }
         };
-
-        fetchPlacesAndCategories();
+        loadInitialData();
     }, []);
 
+    // Загрузка данных мероприятия
     useEffect(() => {
-        const fetchEventData = async () => {
+        const loadEventData = async () => {
             try {
-                const response = await fetch(`http://localhost:5000/api/events/${eventId}/edit`);
-
-                if (!response.ok) {
-                    throw new Error('Failed to fetch event data');
-                }
-                const eventData = await response.json();
-
-                const eventDate = new Date(eventData.date).toISOString().slice(0, 16);
-
+                const eventData = await fetchEventData(eventId);
                 setFormData({
                     name: eventData.name || '',
                     description: eventData.description || '',
-                    date: eventDate || '',
+                    date: new Date(eventData.date).toISOString().slice(0, 16),
                     id_place: eventData.id_place || '',
                     id_category: eventData.id_category || '',
                     max_amount: eventData.max_amount || '',
@@ -72,8 +55,7 @@ const EditPage = () => {
                 setError('Failed to load event data. Please try again later.');
             }
         };
-
-        fetchEventData();
+        loadEventData();
     }, [eventId]);
 
     const handleChange = (e) => {
@@ -86,7 +68,6 @@ const EditPage = () => {
         setError('');
         setLoading(true);
 
-        // Проверяем заполнение всех необходимых полей
         if (!formData.name || !formData.description || !formData.date || !formData.id_place || !formData.id_category || !formData.max_amount) {
             setError('Please fill in all required fields.');
             setLoading(false);
@@ -94,32 +75,7 @@ const EditPage = () => {
         }
 
         try {
-            // Убедимся, что `eventId` задан и корректно используется
-            if (!eventId) {
-                setError('Invalid event ID.');
-                setLoading(false);
-                return;
-            }
-
-            const response = await fetch(`http://localhost:5000/api/events/${eventId}/update`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    ...formData, // Данные формы
-                    date: new Date(formData.date).toISOString(), // Преобразуем дату в ISO-формат
-                }),
-            });
-
-            // Проверяем успешность запроса
-            if (!response.ok) {
-                const errorData = await response.json();
-                setError(errorData.message || 'Failed to update the event.');
-                return;
-            }
-
-            // Перенаправляем пользователя после успешного обновления
+            await updateEvent(eventId, formData);
             navigate('/admin');
         } catch (err) {
             console.error('Error updating event:', err);
@@ -132,16 +88,7 @@ const EditPage = () => {
     const handleDelete = async () => {
         if (window.confirm('Are you sure you want to delete this event?')) {
             try {
-                const response = await fetch(`http://localhost:5000/api/events/${eventId}/delete`, {
-                    method: 'DELETE',
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    setError(errorData.message || 'Failed to delete the event.');
-                    return;
-                }
-
+                await deleteEvent(eventId);
                 navigate('/admin');
             } catch (err) {
                 console.error('Error deleting event:', err);
@@ -150,9 +97,7 @@ const EditPage = () => {
         }
     };
 
-    const handleBackClick = () => {
-        navigate('/admin');
-    };
+    const handleBackClick = () => navigate('/admin');
 
     return (
         <div className="edit-container" style={{ backgroundImage: `url(${backgroundImage})` }}>
@@ -252,7 +197,7 @@ const EditPage = () => {
                     placeholder="Enter image URL or upload a file below"
                 />
 
-               
+
                 <button type="submit" className="submit-btn" disabled={loading}>
                     {loading ? 'Submitting...' : 'Update Event'}
                 </button>

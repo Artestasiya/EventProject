@@ -1,6 +1,4 @@
-﻿using System.Threading.Tasks;
-
-namespace Events.Core.Abstractions
+﻿namespace Events.Core.Abstractions
 {
     public interface IUnitOfWork
     {

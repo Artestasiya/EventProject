@@ -1,7 +1,7 @@
-﻿using Events.DataAccess.Entites;
-using Microsoft.EntityFrameworkCore;
-using Events.Core.Models;
+﻿using Events.Core.Models;
 using Events.DataAccess.Configurations;
+using Events.DataAccess.Entites;
+using Microsoft.EntityFrameworkCore;
 
 namespace Events.DataAccess
 {
@@ -9,7 +9,7 @@ namespace Events.DataAccess
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
-            
+
         }
         public DbSet<Member_event> Member_event { get; set; }
         public DbSet<CategoryEntity> Category { get; set; }

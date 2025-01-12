@@ -4,9 +4,9 @@ import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children }) => {
-    const { user } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
 
-    return user ? children : <Navigate to="/" />;
+  return user ? children : <Navigate to="/" />;
 };
 
 export default ProtectedRoute;

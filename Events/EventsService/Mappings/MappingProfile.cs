@@ -9,7 +9,7 @@ namespace Events.Application.Mappings
     {
         public MappingProfile()
         {
-            
+
             CreateMap<CategoryEntity, Category>().ReverseMap();
         }
     }

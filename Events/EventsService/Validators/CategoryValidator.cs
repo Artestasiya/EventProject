@@ -1,5 +1,5 @@
-﻿using FluentValidation;
-using Events.Application.DTOs;
+﻿using Events.Application.DTOs;
+using FluentValidation;
 
 namespace Events.Application.Validators
 {

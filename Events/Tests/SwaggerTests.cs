@@ -9,13 +9,10 @@ public class SwaggerTests
     [Fact]
     public async Task SwaggerUI_ShouldBeAccessible()
     {
-        // Arrange
         var url = "https://localhost:5001/swagger";
 
-        // Act
         var response = await _client.GetAsync(url);
 
-        // Assert
         Assert.True(response.IsSuccessStatusCode);
     }
 }

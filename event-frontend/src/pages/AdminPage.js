@@ -2,6 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import './EventsPage.css';
 import backgroundImage from '../images/background.jpg';
+import { fetchPlaces, fetchCategories, fetchEvents, searchEvents } from '../services/eventsService'; 
 
 const AdminPage = () => {
     const navigate = useNavigate();
@@ -12,76 +13,44 @@ const AdminPage = () => {
     const [searchText, setSearchText] = useState('');
     const [places, setPlaces] = useState([]);
     const [categories, setCategories] = useState([]);
-
     const [formData, setFormData] = useState({
         id_category: '',
         id_place: '',
         date: '',
     });
-
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    // Fetch places and categories
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [placesResponse, categoriesResponse] = await Promise.all([
-                    fetch('http://localhost:5000/api/places'),
-                    fetch('http://localhost:5000/api/categories'),
-                ]);
-
-                if (!placesResponse.ok || !categoriesResponse.ok) {
-                    throw new Error('Failed to fetch places or categories.');
-                }
-
                 const [placesData, categoriesData] = await Promise.all([
-                    placesResponse.json(),
-                    categoriesResponse.json(),
+                    fetchPlaces(),
+                    fetchCategories(),
                 ]);
-
                 setPlaces(placesData);
                 setCategories(categoriesData);
             } catch (err) {
-                console.error('Error fetching places or categories:', err);
                 setServerError('Error fetching places or categories.');
             }
         };
-
         fetchData();
     }, []);
 
-    // Fetch events based on the filter
     useEffect(() => {
-        const fetchEvents = async () => {
-            const { id_category, id_place, date } = formData;
-            const queryParams = new URLSearchParams();
-
-            if (id_category) queryParams.append('category', id_category);
-            if (id_place) queryParams.append('place', id_place);
-            if (date) queryParams.append('date', date);
-            queryParams.append('page', currentPage);
-            queryParams.append('limit', 10);
-
+        const fetchEventData = async () => {
             try {
-                const response = await fetch(`http://localhost:5000/api/events?${queryParams.toString()}`);
-                if (response.ok) {
-                    const eventsData = await response.json();
-                    setEventData(eventsData.events);
-                    setFilteredEvents(eventsData.events);
-                    setTotalPages(eventsData.totalPages);
-                } else {
-                    setServerError('Failed to fetch events.');
-                }
+                const eventsData = await fetchEvents(formData, currentPage);
+                setEventData(eventsData.events);
+                setFilteredEvents(eventsData.events);
+                setTotalPages(eventsData.totalPages);
             } catch (err) {
-                console.error('Error fetching events:', err);
-                setServerError('Error fetching events. Please try again later.');
+                setServerError('Error fetching events.');
             } finally {
                 setIsLoading(false);
             }
         };
-
-        fetchEvents();
+        fetchEventData();
     }, [formData, currentPage]);
 
     const handleFilterChange = (e) => {
@@ -96,11 +65,7 @@ const AdminPage = () => {
     const handleSearchChange = (e) => {
         const value = e.target.value;
         setSearchText(value);
-
-        const filtered = eventData.filter(event =>
-            event.name.toLowerCase().includes(value.toLowerCase()) ||
-            event.id_event.toString().includes(value)
-        );
+        const filtered = searchEvents(eventData, value);  // Здесь используется searchEvents
         setFilteredEvents(filtered);
     };
 
@@ -117,7 +82,10 @@ const AdminPage = () => {
     };
 
     return (
-        <div className="background" style={{ backgroundImage: `url(${backgroundImage})` }}>
+        <div
+            className="background"
+            style={{ backgroundImage: `url(${backgroundImage})` }}
+        >
             <div className="container">
                 <div className="top-bar">
                     <input
@@ -214,7 +182,6 @@ const AdminPage = () => {
                         →
                     </button>
                 </div>
-
             </div>
         </div>
     );

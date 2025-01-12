@@ -353,7 +353,7 @@ app.get('/api/events/:eventId', async (req, res) => {
                 WHERE me.id_event = @eventId
             `);
 
-        // Add participants with their registration dates
+        
         event.participants = participantsResult.recordset.map(participant => ({
             ...participant,
             reg_date: participant.reg_date ? new Date(participant.reg_date).toISOString() : null

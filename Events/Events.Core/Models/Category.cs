@@ -16,9 +16,9 @@ namespace Events.Core.Models
         [Key]
         public int Id_category { get; }
         public string Name { get; }
-        public string Description { get;}
-    
-    public static (Category Category, string Error) Create(int id_category, string name, string description)
+        public string Description { get; }
+
+        public static (Category Category, string Error) Create(int id_category, string name, string description)
         {
             var error = string.Empty;
             if (string.IsNullOrEmpty(name) || name.Length > MAX_NAME_LENGTH)
@@ -26,7 +26,7 @@ namespace Events.Core.Models
                 error = "Name can not be empty or longer then 250 symbols";
             }
             var category = new Category(id_category, name, description);
-            return (category,error);
+            return (category, error);
         }
     }
 }

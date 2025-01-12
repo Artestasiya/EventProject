@@ -1,5 +1,5 @@
-﻿using Events.Core.Models;
-using Events.DataAccess.Repositories;
+﻿using Events.Core.Abstractions;
+using Events.Core.Models;
 
 namespace Events.Core.UseCases
 {

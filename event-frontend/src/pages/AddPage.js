@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './AddPage.css';
 import backgroundImage from '../images/background.jpg';
+import { fetchPlaces, fetchCategories, addEvent} from '../services/apiService';
 
 const AddPage = () => {
     const navigate = useNavigate();
@@ -19,22 +20,13 @@ const AddPage = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // Загрузка мест и категорий
     useEffect(() => {
         const fetchPlacesAndCategories = async () => {
             try {
-                const [placesResponse, categoriesResponse] = await Promise.all([
-                    fetch('http://localhost:5000/api/places'),
-                    fetch('http://localhost:5000/api/categories'),
+                const [placesData, categoriesData] = await Promise.all([
+                    fetchPlaces(),
+                    fetchCategories(),
                 ]);
-
-                if (!placesResponse.ok || !categoriesResponse.ok) {
-                    throw new Error('Failed to fetch places or categories from the server.');
-                }
-
-                const placesData = await placesResponse.json();
-                const categoriesData = await categoriesResponse.json();
-
                 setPlaces(placesData);
                 setCategories(categoriesData);
             } catch (err) {
@@ -46,39 +38,31 @@ const AddPage = () => {
         fetchPlacesAndCategories();
     }, []);
 
-    // Обработчик изменения полей
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
     };
 
-    // Обработчик отправки формы
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setLoading(true);
 
-        if (!formData.name || !formData.description || !formData.date || !formData.id_place || !formData.id_category || !formData.max_amount) {
+        if (
+            !formData.name ||
+            !formData.description ||
+            !formData.date ||
+            !formData.id_place ||
+            !formData.id_category ||
+            !formData.max_amount
+        ) {
             setError('Please fill in all required fields.');
             setLoading(false);
             return;
         }
 
         try {
-            const response = await fetch('http://localhost:5000/api/add_events', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                setError(errorData.message || 'Failed to add the event.');
-                return;
-            }
-
+            await addEvent(formData);
             navigate('/admin');
         } catch (err) {
             console.error('Error submitting event:', err);
@@ -88,12 +72,13 @@ const AddPage = () => {
         }
     };
 
-    const handleBackClick = () => {
-        navigate('/admin');
-    };
+    const handleBackClick = () => navigate('/admin');
 
     return (
-        <div className="add-container" style={{ backgroundImage: `url(${backgroundImage})` }}>
+        <div
+            className="add-container"
+            style={{ backgroundImage: `url(${backgroundImage})` }}
+        >
             <form className="add-form" onSubmit={handleSubmit}>
                 <button className="back" onClick={handleBackClick} type="button">
                     Back
@@ -182,7 +167,6 @@ const AddPage = () => {
                     placeholder="Enter image URL or upload a file below"
                 />
 
-              
                 <button type="submit" className="submit-btn" disabled={loading}>
                     {loading ? 'Submitting...' : 'Add Event'}
                 </button>

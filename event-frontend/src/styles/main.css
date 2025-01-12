@@ -1,17 +1,15 @@
-/* Контейнер для формы логина */
 .login-container {
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background-image: url('../images/background.jpg'); /* Исправленный относительный путь */
+    background-image: url('../images/background.jpg');
     background-size: cover;
     background-position: center;
 }
 
-/* Другие стили для формы логина */
 .login-form {
-    background-color: rgba(255, 255, 255, 0.8); /* Полупрозрачный белый фон */
+    background-color: rgba(255, 255, 255, 0.8);
     padding: 30px;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -19,7 +17,6 @@
     max-width: 400px;
 }
 
-    /* Заголовок формы */
     .login-form h2 {
         text-align: center;
         margin-bottom: 20px;
@@ -28,12 +25,10 @@
         color: #333;
     }
 
-/* Группы для полей ввода */
 .form-group {
     margin-bottom: 15px;
 }
 
-    /* Метки для полей ввода */
     .form-group label {
         display: block;
         font-weight: bold;
@@ -42,7 +37,6 @@
         color: #333;
     }
 
-    /* Поля ввода */
     .form-group input {
         width: 100%;
         padding: 10px;
@@ -54,7 +48,6 @@
         box-sizing: border-box;
     }
 
-/* Кнопка логина */
 .login-btn {
     width: 100%;
     padding: 10px;
@@ -72,7 +65,6 @@
         background-color: #0056b3;
     }
 
-/* Сообщения об ошибках */
 .error-message {
     color: red;
     font-size: 14px;
@@ -81,7 +73,6 @@
     margin-top: 10px;
 }
 
-/* Ссылка для регистрации */
 .register-link {
     text-align: center;
     margin-top: 15px;

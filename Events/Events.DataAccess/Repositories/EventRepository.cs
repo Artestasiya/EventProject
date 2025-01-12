@@ -1,5 +1,9 @@
-﻿using Events.Core.Models;
+﻿using Events.Core.Abstractions;
+using Events.Core.Models;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Events.DataAccess.Repositories
 {
@@ -12,14 +16,21 @@ namespace Events.DataAccess.Repositories
             _context = context;
         }
 
+        public async Task<Event> GetEventAsync(int eventId)
+        {
+            return await _context.Set<Event>().FirstOrDefaultAsync(e => e.id_event == eventId);
+        }
+
         public Event GetEvent(int eventId)
         {
             return _context.Set<Event>().FirstOrDefault(e => e.id_event == eventId);
         }
 
-        public async Task GetEvent()
+        public async Task<Event> SaveEventAsync(Event eventEntity)
         {
-            throw new NotImplementedException();
+            await _context.Set<Event>().AddAsync(eventEntity);
+            await _context.SaveChangesAsync();
+            return eventEntity;
         }
 
         public Event SaveEvent(Event eventEntity)
@@ -29,32 +40,12 @@ namespace Events.DataAccess.Repositories
             return eventEntity;
         }
 
+        public async Task<List<Event>> GetAllEvents()
+        {
+            return await _context.Set<Event>().ToListAsync();
+        }
+
         Task IEventRepository.GetAllEvents(int eventId)
-        {
-            throw new NotImplementedException();
-        }
-
-        IQueryable<Event> IEventRepository.GetAllEvents()
-        {
-            throw new NotImplementedException();
-        }
-
-        Event IEventRepository.GetEvent(int eventId)
-        {
-            throw new NotImplementedException();
-        }
-
-        Task<Event> IEventRepository.GetEventAsync(int eventId)
-        {
-            throw new NotImplementedException();
-        }
-
-        Event IEventRepository.SaveEvent(Event eventEntity)
-        {
-            throw new NotImplementedException();
-        }
-
-        Task<Event> IEventRepository.SaveEventAsync(Event eventEntity)
         {
             throw new NotImplementedException();
         }
