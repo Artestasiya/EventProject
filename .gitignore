@@ -9,25 +9,9 @@ bin/
 obj/
 out/
 
-# Node.js зависимости (фронтенд)
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
 # Кэшированные файлы IDE
 .idea/
 *.iml
-
-# Файлы среды .NET
-*.dll
-*.pdb
-*.exe
-*.app
-*.log
-
-# Конфигурации
-appsettings*.json
 
 # Системные файлы
 .DS_Store
